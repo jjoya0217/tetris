@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테트리스 배틀 - 온라인 대전</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="start-screen">
+        <div class="title-container">
+            <h1 class="game-title">🎮 테트리스 배틀</h1>
+            <p class="subtitle">친구와 온라인 대전!</p>
+        </div>
+
+        <div class="login-container" id="loginContainer">
+            <h2>플레이어 이름 입력</h2>
+            <input type="text" id="playerName" placeholder="이름을 입력하세요" maxlength="10">
+            <button id="setNameBtn" class="btn-primary">확인</button>
+        </div>
+
+        <div class="menu-container hidden" id="menuContainer">
+            <h2>환영합니다, <span id="welcomeName"></span>님!</h2>
+            
+            <div class="menu-section">
+                <h3>🎯 방 만들기</h3>
+                <p>새로운 게임방을 만들고 친구를 초대하세요</p>
+                <button id="createRoomBtn" class="btn-primary">방 만들기</button>
+            </div>
+
+            <div class="menu-section">
+                <h3>🔗 방 참가하기</h3>
+                <p>친구가 공유한 방 코드를 입력하세요</p>
+                <input type="text" id="roomCode" placeholder="방 코드 입력 (예: ABC123)" maxlength="6">
+                <button id="joinRoomBtn" class="btn-primary">참가하기</button>
+            </div>
+
+            <div class="stats-section">
+                <h3>📊 내 전적</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">총 게임</span>
+                        <span class="stat-value" id="totalGames">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">승리</span>
+                        <span class="stat-value" id="wins">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">승률</span>
+                        <span class="stat-value" id="winRate">0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="waiting-room hidden" id="waitingRoom">
+            <h2>대기실</h2>
+            <div class="room-info">
+                <p>방 코드: <span id="currentRoomCode" class="room-code"></span></p>
+                <button id="copyCodeBtn" class="btn-secondary">코드 복사</button>
+            </div>
+            <div class="players-list">
+                <div class="player-slot">
+                    <span class="player-icon">👤</span>
+                    <span id="player1Name">대기 중...</span>
+                </div>
+                <div class="vs-text">VS</div>
+                <div class="player-slot">
+                    <span class="player-icon">👤</span>
+                    <span id="player2Name">대기 중...</span>
+                </div>
+            </div>
+            <p class="waiting-text">친구가 참가할 때까지 기다려주세요...</p>
+            <button id="cancelRoomBtn" class="btn-danger">취소</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    <script>
+        // 전역 변수
+        let playerName = '';
+        let currentRoomCode = '';
+        let playerStats = { totalGames: 0, wins: 0 };
+
+        // 로컬 스토리지에서 통계 불러오기
+        function loadStats() {
+            const saved = localStorage.getItem('tetrisStats');
+            if (saved) {
+                playerStats = JSON.parse(saved);
+                updateStatsDisplay();
+            }
+        }
+
+        // 통계 표시 업데이트
+        function updateStatsDisplay() {
+            document.getElementById('totalGames').textContent = playerStats.totalGames;
+            document.getElementById('wins').textContent = playerStats.wins;
+            const winRate = playerStats.totalGames > 0 
+                ? Math.round((playerStats.wins / playerStats.totalGames) * 100) 
+                : 0;
+            document.getElementById('winRate').textContent = winRate + '%';
+        }
+
+        // 이름 설정
+        document.getElementById('setNameBtn').addEventListener('click', () => {
+            const name = document.getElementById('playerName').value.trim();
+            if (name && name.length >= 2) {
+                playerName = name;
+                localStorage.setItem('playerName', name);
+                document.getElementById('welcomeName').textContent = name;
+                document.getElementById('loginContainer').classList.add('hidden');
+                document.getElementById('menuContainer').classList.remove('hidden');
+                loadStats();
+            } else {
+                alert('이름은 최소 2글자 이상 입력해주세요!');
+            }
+        });
+
+        // 방 만들기
+        document.getElementById('createRoomBtn').addEventListener('click', async () => {
+            currentRoomCode = generateRoomCode();
+            
+            try {
+                await createRoom(currentRoomCode, playerName);
+                showWaitingRoom();
+            } catch (error) {
+                console.error('방 생성 오류:', error);
+                alert('방 생성에 실패했습니다. 다시 시도해주세요.');
+            }
+        });
+
+        // 방 참가하기
+        document.getElementById('joinRoomBtn').addEventListener('click', async () => {
+            const roomCode = document.getElementById('roomCode').value.trim().toUpperCase();
+            
+            if (roomCode.length !== 6) {
+                alert('올바른 방 코드를 입력해주세요! (6자리)');
+                return;
+            }
+
+            try {
+                const success = await joinRoom(roomCode, playerName);
+                if (success) {
+                    currentRoomCode = roomCode;
+                    // 게임 시작
+                    startGame(roomCode, playerName, false);
+                } else {
+                    alert('방을 찾을 수 없거나 이미 게임이 시작되었습니다.');
+                }
+            } catch (error) {
+                console.error('방 참가 오류:', error);
+                alert('방 참가에 실패했습니다. 다시 시도해주세요.');
+            }
+        });
+
+        // 방 취소
+        document.getElementById('cancelRoomBtn').addEventListener('click', async () => {
+            if (currentRoomCode) {
+                await cancelRoom(currentRoomCode);
+                hideWaitingRoom();
+            }
+        });
+
+        // 코드 복사
+        document.getElementById('copyCodeBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(currentRoomCode).then(() => {
+                alert('방 코드가 복사되었습니다!');
+            });
+        });
+
+        // 대기실 표시
+        function showWaitingRoom() {
+            document.getElementById('menuContainer').classList.add('hidden');
+            document.getElementById('waitingRoom').classList.remove('hidden');
+            document.getElementById('currentRoomCode').textContent = currentRoomCode;
+            document.getElementById('player1Name').textContent = playerName;
+            document.getElementById('player2Name').textContent = '대기 중...';
+        }
+
+        // 대기실 숨기기
+        function hideWaitingRoom() {
+            document.getElementById('waitingRoom').classList.add('hidden');
+            document.getElementById('menuContainer').classList.remove('hidden');
+            currentRoomCode = '';
+        }
+
+        // 방 코드 생성 (6자리 영문+숫자)
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // 게임 시작
+        function startGame(roomCode, playerName, isHost) {
+            localStorage.setItem('gameRoom', roomCode);
+            localStorage.setItem('playerName', playerName);
+            localStorage.setItem('isHost', isHost);
+            window.location.href = 'game.html';
+        }
+
+        // 페이지 로드 시 저장된 이름 불러오기
+        window.addEventListener('load', () => {
+            const savedName = localStorage.getItem('playerName');
+            if (savedName) {
+                document.getElementById('playerName').value = savedName;
+            }
+        });
+    </script>
+</body>
+</html>

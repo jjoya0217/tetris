@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>테트리스 배틀 - 게임 중</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="game-body">
+    <!-- 라운드 시작 오버레이 -->
+    <div class="overlay hidden" id="roundOverlay">
+        <div class="overlay-content">
+            <h1 id="roundText">라운드 1</h1>
+            <p id="countdownText">5</p>
+        </div>
+    </div>
+
+    <!-- 게임 종료 오버레이 -->
+    <div class="overlay hidden" id="gameOverOverlay">
+        <div class="overlay-content">
+            <h1 id="resultText">승리!</h1>
+            <div class="final-scores">
+                <div class="score-box">
+                    <p>나의 점수</p>
+                    <h2 id="myFinalScore">0</h2>
+                </div>
+                <div class="score-box">
+                    <p>상대방 점수</p>
+                    <h2 id="opponentFinalScore">0</h2>
+                </div>
+            </div>
+            <button id="backToMenuBtn" class="btn-primary">메인으로</button>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <!-- 상단 정보 바 -->
+        <div class="game-header">
+            <div class="room-info-bar">
+                <span>방 코드: <strong id="roomCodeDisplay"></strong></span>
+                <span>라운드: <strong id="currentRound">1</strong></span>
+            </div>
+        </div>
+
+        <!-- 게임 영역 -->
+        <div class="game-area">
+            <!-- 내 게임판 (왼쪽, 크게) -->
+            <div class="my-game-section">
+                <div class="player-info">
+                    <h2 id="myNameDisplay">플레이어 1</h2>
+                    <div class="score-display">점수: <span id="myScore">0</span></div>
+                </div>
+                
+                <div class="game-board-container">
+                    <canvas id="myCanvas" width="300" height="600"></canvas>
+                </div>
+
+                <div class="next-piece-container">
+                    <h3>다음 블록</h3>
+                    <canvas id="myNextCanvas" width="100" height="100"></canvas>
+                </div>
+
+                <div class="controls-info">
+                    <p>← → : 이동 | ↓ : 빠르게 | ↑ : 회전 | Space : 즉시 낙하</p>
+                </div>
+            </div>
+
+            <!-- 상대방 게임판 (오른쪽, 작게) -->
+            <div class="opponent-game-section">
+                <div class="player-info">
+                    <h3 id="opponentNameDisplay">상대방</h3>
+                </div>
+                
+                <div class="game-board-container small">
+                    <canvas id="opponentCanvas" width="150" height="300"></canvas>
+                </div>
+
+                <div class="opponent-stats">
+                    <div class="stat-row">
+                        <span>점수:</span>
+                        <strong id="opponentScore">0</strong>
+                    </div>
+                </div>
+
+                <div class="next-piece-container small">
+                    <h4>다음 블록</h4>
+                    <canvas id="opponentNextCanvas" width="60" height="60"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <script src="js/firebase-config.js"></script>
+    <script src="js/tetris.js"></script>
+    <script src="js/multiplayer.js"></script>
+    
+    <script>
+        // 게임 초기화
+        window.addEventListener('load', () => {
+            const roomCode = localStorage.getItem('gameRoom');
+            const playerName = localStorage.getItem('playerName');
+            const isHost = localStorage.getItem('isHost') === 'true';
+
+            if (!roomCode || !playerName) {
+                alert('게임 정보를 찾을 수 없습니다.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // 화면에 정보 표시
+            document.getElementById('roomCodeDisplay').textContent = roomCode;
+            document.getElementById('myNameDisplay').textContent = playerName;
+
+            // 게임 시작
+            initializeGame(roomCode, playerName, isHost);
+        });
+
+        // 뒤로가기 버튼
+        document.getElementById('backToMenuBtn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

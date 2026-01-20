@@ -1,0 +1,511 @@
+/* 전역 스타일 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #333;
+}
+
+/* 시작 화면 */
+.start-screen {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.title-container {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.game-title {
+    font-size: 2.5em;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 1.1em;
+}
+
+/* 로그인 컨테이너 */
+.login-container,
+.menu-container,
+.waiting-room {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.login-container h2,
+.menu-container h2,
+.waiting-room h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.login-container input,
+.menu-container input {
+    width: 100%;
+    padding: 15px;
+    font-size: 1em;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+.login-container input:focus,
+.menu-container input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* 버튼 스타일 */
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+    width: 100%;
+    padding: 15px;
+    font-size: 1em;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.btn-danger {
+    background: #ff6b6b;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #ff5252;
+}
+
+/* 메뉴 섹션 */
+.menu-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.menu-section h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.menu-section p {
+    color: #666;
+    margin-bottom: 15px;
+    font-size: 0.9em;
+}
+
+/* 통계 섹션 */
+.stats-section {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.stats-section h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.stat-item {
+    text-align: center;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.stat-label {
+    display: block;
+    color: #666;
+    font-size: 0.85em;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    display: block;
+    color: #667eea;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+/* 대기실 */
+.room-info {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.room-code {
+    font-size: 2em;
+    font-weight: bold;
+    color: #667eea;
+    letter-spacing: 3px;
+    display: inline-block;
+    background: #f0f0f0;
+    padding: 10px 20px;
+    border-radius: 10px;
+    margin: 10px 0;
+}
+
+.players-list {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 30px 0;
+}
+
+.player-slot {
+    text-align: center;
+    font-size: 1.2em;
+}
+
+.player-icon {
+    font-size: 3em;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.vs-text {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.waiting-text {
+    text-align: center;
+    color: #666;
+    margin: 20px 0;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* 숨김 클래스 */
+.hidden {
+    display: none !important;
+}
+
+/* ========== 게임 화면 스타일 ========== */
+.game-body {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    padding: 20px;
+}
+
+.game-container {
+    max-width: 1400px;
+    width: 100%;
+}
+
+.game-header {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 15px 30px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.room-info-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1em;
+}
+
+.room-info-bar strong {
+    color: #667eea;
+}
+
+/* 게임 영역 */
+.game-area {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+/* 내 게임판 */
+.my-game-section {
+    background: rgba(255, 255, 255, 0.95);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.player-info h2 {
+    color: #667eea;
+    margin-bottom: 10px;
+    font-size: 1.8em;
+}
+
+.score-display {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 600;
+}
+
+.score-display span {
+    color: #667eea;
+    font-size: 1.4em;
+}
+
+.game-board-container {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.game-board-container canvas {
+    border: 3px solid #667eea;
+    border-radius: 10px;
+    background: #000;
+    display: block;
+}
+
+.next-piece-container {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.next-piece-container h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.next-piece-container canvas {
+    background: #000;
+    border: 2px solid #667eea;
+    border-radius: 5px;
+    margin: 0 auto;
+    display: block;
+}
+
+.controls-info {
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* 상대방 게임판 */
+.opponent-game-section {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.opponent-game-section .player-info h3 {
+    color: #764ba2;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.game-board-container.small canvas {
+    border: 2px solid #764ba2;
+}
+
+.opponent-stats {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.1em;
+    padding: 5px 0;
+}
+
+.stat-row strong {
+    color: #764ba2;
+}
+
+.next-piece-container.small {
+    padding: 10px;
+}
+
+.next-piece-container.small h4 {
+    color: #764ba2;
+    font-size: 0.9em;
+    margin-bottom: 8px;
+}
+
+.next-piece-container.small canvas {
+    border: 2px solid #764ba2;
+}
+
+/* 오버레이 */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.overlay-content {
+    background: white;
+    padding: 50px;
+    border-radius: 20px;
+    text-align: center;
+    animation: bounceIn 0.5s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.overlay-content h1 {
+    color: #667eea;
+    font-size: 3em;
+    margin-bottom: 20px;
+}
+
+#countdownText {
+    font-size: 5em;
+    font-weight: bold;
+    color: #667eea;
+    animation: countPulse 1s infinite;
+}
+
+@keyframes countPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+}
+
+.final-scores {
+    display: flex;
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.score-box {
+    flex: 1;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.score-box p {
+    color: #666;
+    margin-bottom: 10px;
+}
+
+.score-box h2 {
+    color: #667eea;
+    font-size: 2.5em;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+    .game-area {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .opponent-game-section {
+        width: 100%;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .final-scores {
+        flex-direction: column;
+    }
+    
+    .game-title {
+        font-size: 2em;
+    }
+}
