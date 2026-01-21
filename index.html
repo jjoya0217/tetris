@@ -35,6 +35,12 @@
                 <button id="joinRoomBtn" class="btn-primary">참가하기</button>
             </div>
 
+            <div class="menu-section">
+                <h3>📊 순위표 보기</h3>
+                <p>전체 플레이어 순위를 확인하세요</p>
+                <button id="leaderboardBtn" class="btn-primary">순위표 보기</button>
+            </div>
+
             <div class="stats-section">
                 <h3>📊 내 전적</h3>
                 <div class="stats-grid">
@@ -74,6 +80,29 @@
             <p class="waiting-text">친구가 참가할 때까지 기다려주세요...</p>
             <button id="cancelRoomBtn" class="btn-danger">취소</button>
         </div>
+
+        <!-- 순위표 모달 -->
+        <div class="leaderboard-modal hidden" id="leaderboardModal">
+            <div class="leaderboard-content">
+                <h2>🏆 전체 순위표</h2>
+                <button class="close-modal" id="closeLeaderboard">×</button>
+                
+                <div class="leaderboard-tabs">
+                    <button class="tab-btn active" data-tab="score">최고 점수</button>
+                    <button class="tab-btn" data-tab="wins">승리 횟수</button>
+                </div>
+
+                <div class="leaderboard-list" id="scoreLeaderboard">
+                    <h3>🏆 최고 점수 순위</h3>
+                    <div class="loading">순위표를 불러오는 중...</div>
+                </div>
+
+                <div class="leaderboard-list hidden" id="winsLeaderboard">
+                    <h3>👑 승리 횟수 순위</h3>
+                    <div class="loading">순위표를 불러오는 중...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->
@@ -84,8 +113,14 @@
     <script>
         // 전역 변수
         let playerName = '';
+        let playerTag = ''; // 닉네임#번호
         let currentRoomCode = '';
         let playerStats = { totalGames: 0, wins: 0 };
+
+        // 4자리 랜덤 번호 생성
+        function generatePlayerTag() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
+        }
 
         // 로컬 스토리지에서 통계 불러오기
         function loadStats() {
@@ -110,9 +145,22 @@
         document.getElementById('setNameBtn').addEventListener('click', () => {
             const name = document.getElementById('playerName').value.trim();
             if (name && name.length >= 2) {
+                // 기존에 저장된 태그가 있는지 확인
+                let savedTag = localStorage.getItem('playerTag');
+                
+                if (!savedTag) {
+                    // 새로운 태그 생성
+                    savedTag = generatePlayerTag();
+                    localStorage.setItem('playerTag', savedTag);
+                }
+                
                 playerName = name;
+                playerTag = name + '#' + savedTag;
+                
                 localStorage.setItem('playerName', name);
-                document.getElementById('welcomeName').textContent = name;
+                localStorage.setItem('playerFullName', playerTag);
+                
+                document.getElementById('welcomeName').textContent = playerTag;
                 document.getElementById('loginContainer').classList.add('hidden');
                 document.getElementById('menuContainer').classList.remove('hidden');
                 loadStats();
@@ -126,7 +174,7 @@
             currentRoomCode = generateRoomCode();
             
             try {
-                await createRoom(currentRoomCode, playerName);
+                await createRoom(currentRoomCode, playerTag);
                 showWaitingRoom();
             } catch (error) {
                 console.error('방 생성 오류:', error);
@@ -144,11 +192,11 @@
             }
 
             try {
-                const success = await joinRoom(roomCode, playerName);
+                const success = await joinRoom(roomCode, playerTag);
                 if (success) {
                     currentRoomCode = roomCode;
                     // 게임 시작
-                    startGame(roomCode, playerName, false);
+                    startGame(roomCode, playerTag, false);
                 } else {
                     alert('방을 찾을 수 없거나 이미 게임이 시작되었습니다.');
                 }
@@ -157,6 +205,102 @@
                 alert('방 참가에 실패했습니다. 다시 시도해주세요.');
             }
         });
+
+        // 순위표 보기 버튼
+        document.getElementById('leaderboardBtn').addEventListener('click', () => {
+            document.getElementById('leaderboardModal').classList.remove('hidden');
+            loadLeaderboard('score');
+        });
+
+        // 순위표 닫기
+        document.getElementById('closeLeaderboard').addEventListener('click', () => {
+            document.getElementById('leaderboardModal').classList.add('hidden');
+        });
+
+        // 순위표 탭 전환
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.tab;
+                
+                // 탭 활성화
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // 순위표 표시
+                document.getElementById('scoreLeaderboard').classList.add('hidden');
+                document.getElementById('winsLeaderboard').classList.add('hidden');
+                
+                if (tab === 'score') {
+                    document.getElementById('scoreLeaderboard').classList.remove('hidden');
+                    loadLeaderboard('score');
+                } else {
+                    document.getElementById('winsLeaderboard').classList.remove('hidden');
+                    loadLeaderboard('wins');
+                }
+            });
+        });
+
+        // 순위표 불러오기
+        async function loadLeaderboard(type) {
+            const containerId = type === 'score' ? 'scoreLeaderboard' : 'winsLeaderboard';
+            const container = document.getElementById(containerId);
+            
+            container.innerHTML = type === 'score' 
+                ? '<h3>🏆 최고 점수 순위</h3><div class="loading">순위표를 불러오는 중...</div>'
+                : '<h3>👑 승리 횟수 순위</h3><div class="loading">순위표를 불러오는 중...</div>';
+            
+            try {
+                const leaderboard = await fetchLeaderboard(type);
+                displayLeaderboard(leaderboard, type, container);
+            } catch (error) {
+                console.error('순위표 불러오기 오류:', error);
+                container.innerHTML += '<p class="error">순위표를 불러오지 못했습니다.</p>';
+            }
+        }
+
+        // 순위표 표시
+        function displayLeaderboard(data, type, container) {
+            const title = type === 'score' ? '🏆 최고 점수 순위' : '👑 승리 횟수 순위';
+            
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <h3>${title}</h3>
+                    <p class="no-data">아직 기록이 없습니다.</p>
+                `;
+                return;
+            }
+            
+            const medals = ['🥇', '🥈', '🥉', '4.', '5.'];
+            const myTag = localStorage.getItem('playerFullName');
+            
+            let html = `<h3>${title}</h3><div class="leaderboard-items">`;
+            
+            data.forEach((player, index) => {
+                const isMe = player.displayName === myTag;
+                const medal = medals[index] || (index + 1) + '.';
+                
+                if (type === 'score') {
+                    html += `
+                        <div class="leaderboard-item ${isMe ? 'highlight' : ''}">
+                            <span class="rank">${medal}</span>
+                            <span class="player-name">${player.displayName}</span>
+                            <span class="score">${player.bestScore.toLocaleString()}점</span>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="leaderboard-item ${isMe ? 'highlight' : ''}">
+                            <span class="rank">${medal}</span>
+                            <span class="player-name">${player.displayName}</span>
+                            <span class="score">${player.totalWins}승 (${player.winRate}%)</span>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
         // 방 취소
         document.getElementById('cancelRoomBtn').addEventListener('click', async () => {
@@ -178,7 +322,7 @@
             document.getElementById('menuContainer').classList.add('hidden');
             document.getElementById('waitingRoom').classList.remove('hidden');
             document.getElementById('currentRoomCode').textContent = currentRoomCode;
-            document.getElementById('player1Name').textContent = playerName;
+            document.getElementById('player1Name').textContent = playerTag;
             document.getElementById('player2Name').textContent = '대기 중...';
         }
 
@@ -210,8 +354,16 @@
         // 페이지 로드 시 저장된 이름 불러오기
         window.addEventListener('load', () => {
             const savedName = localStorage.getItem('playerName');
+            const savedTag = localStorage.getItem('playerTag');
+            
             if (savedName) {
                 document.getElementById('playerName').value = savedName;
+            }
+            
+            // 태그가 없으면 자동 생성
+            if (!savedTag) {
+                const newTag = generatePlayerTag();
+                localStorage.setItem('playerTag', newTag);
             }
         });
     </script>

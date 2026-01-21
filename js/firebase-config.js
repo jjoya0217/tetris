@@ -131,3 +131,107 @@ async function cleanupRoom(roomCode) {
         await database.ref(`rooms/${roomCode}`).remove();
     }, 5000);
 }
+
+// 게임 오버 이벤트 전송
+function sendGameOver(roomCode, isHost) {
+    const gameOverKey = isHost ? 'player1GameOver' : 'player2GameOver';
+    database.ref(`rooms/${roomCode}/${gameOverKey}`).set({
+        gameOver: true,
+        timestamp: Date.now()
+    });
+}
+
+// 상대방 게임 오버 감지
+function watchOpponentGameOver(roomCode, isHost, callback) {
+    const opponentGameOverKey = isHost ? 'player2GameOver' : 'player1GameOver';
+    
+    database.ref(`rooms/${roomCode}/${opponentGameOverKey}`).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data && data.gameOver) {
+            callback();
+            // 한 번만 실행되도록 제거
+            database.ref(`rooms/${roomCode}/${opponentGameOverKey}`).off();
+        }
+    });
+}
+
+// ========== 리더보드 함수들 ==========
+
+// 플레이어 ID 생성 (닉네임#번호에서 특수문자 제거)
+function getPlayerId(displayName) {
+    return displayName.replace(/[.#$[\]]/g, '_');
+}
+
+// 리더보드에 기록 저장/업데이트
+async function updateLeaderboard(playerData) {
+    const playerId = getPlayerId(playerData.displayName);
+    const playerRef = database.ref(`leaderboard/${playerId}`);
+    
+    try {
+        // 기존 데이터 가져오기
+        const snapshot = await playerRef.once('value');
+        const existing = snapshot.val();
+        
+        if (existing) {
+            // 기존 기록 업데이트
+            const updates = {
+                displayName: playerData.displayName,
+                bestScore: Math.max(existing.bestScore || 0, playerData.score),
+                totalGames: (existing.totalGames || 0) + 1,
+                totalWins: (existing.totalWins || 0) + (playerData.won ? 1 : 0),
+                lastPlayed: new Date().toISOString().split('T')[0],
+                maxStreak: Math.max(existing.maxStreak || 0, playerData.streak || 0)
+            };
+            
+            // 승률 계산
+            updates.winRate = Math.round((updates.totalWins / updates.totalGames) * 100);
+            
+            await playerRef.update(updates);
+        } else {
+            // 새 플레이어 기록
+            await playerRef.set({
+                displayName: playerData.displayName,
+                bestScore: playerData.score,
+                totalGames: 1,
+                totalWins: playerData.won ? 1 : 0,
+                winRate: playerData.won ? 100 : 0,
+                lastPlayed: new Date().toISOString().split('T')[0],
+                maxStreak: playerData.streak || 0
+            });
+        }
+    } catch (error) {
+        console.error('리더보드 업데이트 오류:', error);
+    }
+}
+
+// 리더보드 가져오기
+async function fetchLeaderboard(type) {
+    try {
+        const leaderboardRef = database.ref('leaderboard');
+        const snapshot = await leaderboardRef.once('value');
+        const data = snapshot.val();
+        
+        if (!data) return [];
+        
+        // 객체를 배열로 변환
+        const players = Object.values(data);
+        
+        // 정렬
+        if (type === 'score') {
+            players.sort((a, b) => b.bestScore - a.bestScore);
+        } else if (type === 'wins') {
+            players.sort((a, b) => {
+                if (b.totalWins !== a.totalWins) {
+                    return b.totalWins - a.totalWins;
+                }
+                return b.winRate - a.winRate;
+            });
+        }
+        
+        // 상위 5명만 반환
+        return players.slice(0, 5);
+    } catch (error) {
+        console.error('리더보드 불러오기 오류:', error);
+        return [];
+    }
+}

@@ -29,6 +29,19 @@
                     <h2 id="opponentFinalScore">0</h2>
                 </div>
             </div>
+            
+            <!-- 순위표 섹션 -->
+            <div class="game-over-leaderboard">
+                <h3>📊 전체 순위표</h3>
+                <div class="leaderboard-tabs-small">
+                    <button class="tab-btn-small active" data-tab="score">최고 점수</button>
+                    <button class="tab-btn-small" data-tab="wins">승리 횟수</button>
+                </div>
+                <div class="leaderboard-small" id="gameOverLeaderboard">
+                    <div class="loading">순위표를 불러오는 중...</div>
+                </div>
+            </div>
+            
             <button id="backToMenuBtn" class="btn-primary">메인으로</button>
         </div>
     </div>
@@ -36,6 +49,9 @@
     <div class="game-container">
         <!-- 상단 정보 바 -->
         <div class="game-header">
+            <!-- 공격 알림 영역 -->
+            <div class="attack-notification hidden" id="attackNotification"></div>
+            
             <div class="room-info-bar">
                 <span>방 코드: <strong id="roomCodeDisplay"></strong></span>
                 <span>라운드: <strong id="currentRound">1</strong></span>
@@ -69,6 +85,7 @@
             <div class="opponent-game-section">
                 <div class="player-info">
                     <h3 id="opponentNameDisplay">상대방</h3>
+                    <button id="giveUpBtn" class="btn-give-up">포기하기</button>
                 </div>
                 
                 <div class="game-board-container small">

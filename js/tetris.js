@@ -12,7 +12,8 @@ const COLORS = [
     '#F538FF', // O
     '#FF8E0D', // S
     '#FFE138', // T
-    '#3877FF'  // Z
+    '#3877FF', // Z
+    '#FF6B35'  // 공격받은 줄 (밝은 주황색)
 ];
 
 // 테트로미노 모양 정의
@@ -24,6 +25,13 @@ const SHAPES = [
     [[0, 5, 5], [5, 5, 0]], // S
     [[0, 6, 0], [6, 6, 6]], // T
     [[7, 7, 0], [0, 7, 7]]  // Z
+];
+
+// 시작할 때만 사용할 안전한 블록 (O, I, L)
+const SAFE_SHAPES = [
+    [[4, 4], [4, 4]], // O
+    [[1, 1, 1, 1]], // I
+    [[0, 0, 3], [3, 3, 3]]  // L
 ];
 
 // 게임 클래스
@@ -40,6 +48,7 @@ class TetrisGame {
         this.level = 1;
         this.linesCleared = 0;
         this.gameOver = false;
+        this.isFirstPiece = true; // 첫 블록 플래그
         
         this.currentPiece = null;
         this.nextPiece = this.randomPiece();
@@ -57,18 +66,26 @@ class TetrisGame {
     }
 
     randomPiece() {
-        const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+        // 첫 블록은 안전한 블록만 (O, I, L)
+        const shapeSet = this.isFirstPiece ? SAFE_SHAPES : SHAPES;
+        const shape = shapeSet[Math.floor(Math.random() * shapeSet.length)];
+        
         return {
             shape: shape,
             x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2),
             y: 0,
-            color: shape[0][0]
+            color: shape[0][0] || shape[0].find(cell => cell !== 0)
         };
     }
 
     spawnPiece() {
         this.currentPiece = this.nextPiece;
         this.nextPiece = this.randomPiece();
+        
+        // 첫 블록이 spawn된 후 플래그 해제
+        if (this.isFirstPiece) {
+            this.isFirstPiece = false;
+        }
         
         if (this.collision()) {
             this.gameOver = true;
