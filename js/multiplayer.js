@@ -37,16 +37,31 @@ function initializeGame(room, name, host) {
     // 상대방 게임 오버 감지 (새로 추가!)
     watchOpponentGameOver(roomCode, isHost, () => {
         if (gameActive) {
-            console.log('상대방이 게임 오버되었습니다!');
-            handleGameOver(true); // 내가 이김
+            console.log('상대방이 게임 오버되었습니다! 내 게임도 즉시 종료');
+            
+            // 내 게임 강제 종료
+            myGame.gameOver = true;
+            
+            // 내가 이김 처리
+            handleGameOver(true);
         }
     });
     
     // 호스트가 아니면 라운드 정보 감지
     if (!isHost) {
+        let previousRound = currentRound;
         watchRoundInfo(roomCode, (round) => {
             currentRound = round;
             document.getElementById('currentRound').textContent = round;
+            
+            // 라운드가 증가하면 새 라운드 시작
+            if (round > previousRound) {
+                previousRound = round;
+                console.log(`호스트가 라운드 ${round} 시작 신호 보냄`);
+                setTimeout(() => {
+                    startRound();
+                }, 100); // 호스트보다 살짝 늦게 시작
+            }
         });
     }
     
@@ -58,9 +73,11 @@ function initializeGame(room, name, host) {
 function startRound() {
     gameActive = false;
     
-    // Firebase 게임 오버 플래그 초기화
-    const myGameOverKey = isHost ? 'player1GameOver' : 'player2GameOver';
-    database.ref(`rooms/${roomCode}/${myGameOverKey}`).remove();
+    // Firebase 게임 오버 플래그 양쪽 모두 초기화
+    database.ref(`rooms/${roomCode}/player1GameOver`).remove();
+    database.ref(`rooms/${roomCode}/player2GameOver`).remove();
+    
+    console.log(`라운드 ${currentRound} 시작 준비`);
     
     // 라운드 오버레이 표시
     const overlay = document.getElementById('roundOverlay');
@@ -81,6 +98,7 @@ function startRound() {
         } else {
             clearInterval(countInterval);
             overlay.classList.add('hidden');
+            console.log(`라운드 ${currentRound} 게임 시작!`);
             // 게임 시작
             startPlaying();
         }
@@ -90,6 +108,8 @@ function startRound() {
 // 게임 플레이 시작
 function startPlaying() {
     gameActive = true;
+    
+    // 내 게임 초기화
     myGame.gameOver = false;
     myGame.board = myGame.createBoard();
     myGame.score = 0;
@@ -98,7 +118,15 @@ function startPlaying() {
     myGame.isFirstPiece = true; // 첫 블록 플래그 초기화
     myGame.spawnPiece();
     
+    // 상대방 게임도 초기화 (화면 표시용)
+    opponentGame.gameOver = false;
+    opponentGame.board = opponentGame.createBoard();
+    opponentGame.score = 0;
+    
+    console.log('게임 플레이 시작!');
+    
     // 게임 루프 시작
+    lastUpdate = Date.now();
     requestAnimationFrame(gameLoop);
 }
 
@@ -282,35 +310,50 @@ function updateOpponentDisplay() {
 
 // 게임 오버 처리
 function handleGameOver(iWon) {
+    if (!gameActive) return; // 이미 처리됨
+    
     gameActive = false;
     
     // Firebase에 게임 오버 이벤트 전송
     sendGameOver(roomCode, isHost);
     
+    // 점수 기록
     if (iWon) {
         myRoundWins++;
     } else {
         opponentRoundWins++;
     }
     
-    // 3판 2선승제 확인
-    if (myRoundWins === 2) {
-        // 최종 승리
-        showFinalResult(true);
-    } else if (opponentRoundWins === 2) {
-        // 최종 패배
-        showFinalResult(false);
-    } else {
-        // 다음 라운드
-        currentRound++;
-        if (isHost) {
+    console.log(`라운드 종료 - 내 승수: ${myRoundWins}, 상대 승수: ${opponentRoundWins}`);
+    
+    // 호스트만 라운드 진행 결정
+    if (isHost) {
+        // 3판 2선승제 확인
+        if (myRoundWins === 2) {
+            // 최종 승리
+            setTimeout(() => showFinalResult(true), 1000);
+        } else if (opponentRoundWins === 2) {
+            // 최종 패배
+            setTimeout(() => showFinalResult(false), 1000);
+        } else {
+            // 다음 라운드
+            currentRound++;
             updateRoundInfo(roomCode, currentRound);
+            
+            setTimeout(() => {
+                startRound();
+            }, 3000);
         }
-        document.getElementById('currentRound').textContent = currentRound;
+    } else {
+        // 비호스트는 호스트의 라운드 정보 대기
+        // watchRoundInfo에서 자동으로 처리됨
         
-        setTimeout(() => {
-            startRound();
-        }, 3000);
+        // 최종 결과 확인
+        if (myRoundWins === 2) {
+            setTimeout(() => showFinalResult(true), 1000);
+        } else if (opponentRoundWins === 2) {
+            setTimeout(() => showFinalResult(false), 1000);
+        }
     }
 }
 
@@ -434,9 +477,10 @@ function handleGiveUp() {
     
     const confirmed = confirm('정말 포기하시겠습니까?\n상대방이 승리합니다.');
     if (confirmed) {
+        console.log('포기 버튼 클릭 - 즉시 패배 처리');
+        
         // 내 게임을 게임 오버 처리
         myGame.gameOver = true;
-        gameActive = false;
         
         // Firebase에 게임 오버 이벤트 전송
         sendGameOver(roomCode, isHost);
