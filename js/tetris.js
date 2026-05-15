@@ -231,13 +231,15 @@ class TetrisGame {
     }
 
     update(deltaTime) {
-        if (this.gameOver || !this.isPlayer) return;
-        
+        if (this.gameOver || !this.isPlayer) return 0;
+
         this.lastDrop += deltaTime;
         if (this.lastDrop > this.dropInterval) {
-            this.drop();
+            const cleared = this.drop();
             this.lastDrop = 0;
+            return typeof cleared === 'number' ? cleared : 0;
         }
+        return 0;
     }
 
     draw() {

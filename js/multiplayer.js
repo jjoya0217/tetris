@@ -115,8 +115,7 @@ function startPlaying() {
     requestAnimationFrame(gameLoop);
 }
 
-// 이전 줄 제거 수 추적
-let previousLinesCleared = 0;
+let previousLinesCleared = 0; // Space 키 중복 방지용
 
 // 게임 루프
 function gameLoop() {
@@ -126,15 +125,11 @@ function gameLoop() {
     const deltaTime = now - lastUpdate;
     lastUpdate = now;
     
-    // 내 게임 업데이트 (자동 드롭)
-    myGame.update(deltaTime);
-    
-    // 자동 드롭으로 줄 제거된 경우도 체크
-    if (myGame.linesCleared > previousLinesCleared) {
-        const cleared = myGame.linesCleared - previousLinesCleared;
-        previousLinesCleared = myGame.linesCleared;
-        console.log(`자동 드롭으로 ${cleared}줄 제거`);
-        handleLinesCleared(cleared);
+    // 내 게임 업데이트 (자동 드롭) - 줄 제거 수 직접 반환
+    const autoCleared = myGame.update(deltaTime);
+    if (autoCleared > 0) {
+        console.log(`자동 드롭으로 ${autoCleared}줄 제거`);
+        handleLinesCleared(autoCleared);
     }
     
     // 게임 오버 체크
