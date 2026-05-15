@@ -51,10 +51,12 @@ function initializeGame(room, name, host) {
 // 게임 시작
 function startGame() {
     gameActive = false;
-    
-    // Firebase 게임 오버 플래그 양쪽 모두 초기화
+
+    // Firebase 게임 오버 플래그 및 공격 키 양쪽 모두 초기화
     database.ref(`rooms/${roomCode}/player1GameOver`).remove();
     database.ref(`rooms/${roomCode}/player2GameOver`).remove();
+    database.ref(`rooms/${roomCode}/attackToPlayer1`).remove();
+    database.ref(`rooms/${roomCode}/attackToPlayer2`).remove();
     
     console.log('게임 시작 준비');
     
@@ -188,6 +190,7 @@ function setupControls() {
             case ' ':
                 e.preventDefault();
                 const cleared = myGame.hardDrop();
+                previousLinesCleared = myGame.linesCleared; // 게임 루프에서 중복 감지 방지
                 handleLinesCleared(cleared);
                 break;
         }
@@ -245,21 +248,21 @@ function watchForAttacks() {
     database.ref(`rooms/${roomCode}/${attackKey}`).on('value', (snapshot) => {
         const attack = snapshot.val();
         if (attack && gameActive) {
-            myGame.addGarbageLines(attack.lines);
-            
-            // 공격받은 임팩트 효과
-            playAttackImpact(attack.lines);
-            
-            // 공격 받은 후 제거
-            database.ref(`rooms/${roomCode}/${attackKey}`).remove();
+            try {
+                myGame.addGarbageLines(attack.lines);
+                playAttackImpact(attack.lines);
+            } finally {
+                // 오류 발생 여부와 관계없이 반드시 제거
+                database.ref(`rooms/${roomCode}/${attackKey}`).remove();
+            }
         }
     });
 }
 
 // 공격 임팩트 효과 (경고음 + 흔들림 + 번쩍임 + 알림)
 function playAttackImpact(lines) {
-    // 1. 경고음 재생
-    playBeepSound();
+    // 1. 경고음 재생 (AudioContext 정책 오류 무시)
+    try { playBeepSound(); } catch (e) {}
     
     // 2. 화면 흔들림
     const myBoard = document.getElementById('myCanvas').parentElement;
