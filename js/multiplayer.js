@@ -235,8 +235,12 @@ function sendAttack(lines) {
     database.ref(`rooms/${roomCode}/${attackKey}`).set({
         lines: lines,
         timestamp: Date.now()
+    }).then(() => {
+        console.log(`[공격 전송 성공] ${lines}줄 → ${attackKey}`);
+    }).catch(err => {
+        console.error(`[공격 전송 실패] Firebase 오류:`, err.code, err.message);
     });
-    
+
     // 공격 보낸 알림 표시
     showAttackNotification(`📤 ${lines}줄 공격 보냄!`, 'attack-sent');
 }
@@ -245,8 +249,10 @@ function sendAttack(lines) {
 function watchForAttacks() {
     const attackKey = isHost ? 'attackToPlayer1' : 'attackToPlayer2';
     
+    console.log(`[공격 감지 시작] 경로: rooms/${roomCode}/${attackKey}`);
     database.ref(`rooms/${roomCode}/${attackKey}`).on('value', (snapshot) => {
         const attack = snapshot.val();
+        console.log(`[공격 수신 이벤트] 값:`, attack, `gameActive: ${gameActive}`);
         if (attack && gameActive) {
             try {
                 myGame.addGarbageLines(attack.lines);
@@ -256,6 +262,8 @@ function watchForAttacks() {
                 database.ref(`rooms/${roomCode}/${attackKey}`).remove();
             }
         }
+    }, (err) => {
+        console.error(`[공격 수신 실패] Firebase 권한 오류:`, err.code, err.message);
     });
 }
 
