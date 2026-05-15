@@ -104,7 +104,10 @@ function startPlaying() {
     opponentGame.score = 0;
     
     console.log('게임 플레이 시작!');
-    
+
+    // 공격 감지 시작
+    watchForAttacks();
+
     // 게임 루프 시작
     lastUpdate = Date.now();
     requestAnimationFrame(gameLoop);
@@ -220,7 +223,6 @@ function handleLinesCleared(count) {
     } else {
         console.log('1줄만 제거 - 공격 안 함');
     }
-}
 }
 
 // 공격 전송
@@ -463,11 +465,3 @@ function handleGiveUp() {
     }
 }
 
-// 페이지 로드 시 공격 감지 시작
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (gameActive) {
-            watchForAttacks();
-        }
-    }, 6000); // 라운드 시작 카운트다운 후
-});
